@@ -51,10 +51,8 @@ class GameViewModel : ViewModel() {
         if (clickedCard.isFlipped || clickedCard.isMatched) return
 
         if (firstSelectedCardIndex == null) {
-            // ===== PRIMEIRO CLIQUE =====
             firstSelectedCardIndex = position
 
-            // Cria nova lista com a primeira carta virada
             _cards.value = currentCards.mapIndexed { index, card ->
                 if (index == position) {
                     card.copy(isFlipped = true)
@@ -64,15 +62,12 @@ class GameViewModel : ViewModel() {
             }
 
         } else {
-            // ===== SEGUNDO CLIQUE =====
             val firstPos = firstSelectedCardIndex!!
 
-            // Previne clicar na mesma carta
             if (firstPos == position) return
 
             isBoardLocked = true
 
-            // Mostra a segunda carta virada
             val cardsWithBothFlipped = currentCards.mapIndexed { index, card ->
                 if (index == position || index == firstPos) {
                     card.copy(isFlipped = true)
@@ -82,12 +77,10 @@ class GameViewModel : ViewModel() {
             }
             _cards.value = cardsWithBothFlipped
 
-            // Verifica se deu match
             val firstCard = cardsWithBothFlipped[firstPos]
             val secondCard = cardsWithBothFlipped[position]
 
             if (firstCard.id == secondCard.id) {
-                // ===== MATCH! =====
                 _cards.value = cardsWithBothFlipped.mapIndexed { index, card ->
                     if (index == firstPos || index == position) {
                         card.copy(isMatched = true)
@@ -100,11 +93,9 @@ class GameViewModel : ViewModel() {
                 isBoardLocked = false
 
             } else {
-                // ===== NÃO DEU MATCH =====
                 viewModelScope.launch {
                     delay(1000)
 
-                    // Desvira as duas cartas
                     _cards.value = cardsWithBothFlipped.mapIndexed { index, card ->
                         if (index == firstPos || index == position) {
                             card.copy(isFlipped = false)
