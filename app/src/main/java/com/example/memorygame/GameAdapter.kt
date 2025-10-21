@@ -24,13 +24,11 @@ class GameAdapter(
             }
             itemView.setOnClickListener {
                 val position = bindingAdapterPosition
-                if (position == RecyclerView.NO_POSITION){
+
+                if (position == RecyclerView.NO_POSITION) {
                     return@setOnClickListener
                 }
-
-                if (!card.isFlipped && !card.isMatched){
-                    onCardClicked(position)
-                }
+                onCardClicked(position)
             }
         }
     }
@@ -58,7 +56,7 @@ class CardDiffCallback : DiffUtil.ItemCallback<MemoryCard>() {
         oldItem: MemoryCard,
         newItem: MemoryCard
     ): Boolean {
-        return oldItem == newItem
+        return oldItem.uniqueId == newItem.uniqueId
     }
 
     override fun areContentsTheSame(

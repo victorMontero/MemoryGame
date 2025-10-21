@@ -25,8 +25,9 @@ class GameViewModel : ViewModel() {
     }
 
     private fun createNewGame() {
+        var uniqueIdCounter = 0
         val newCards = iconList.flatMap { iconId ->
-            listOf(MemoryCard(iconId), MemoryCard(iconId))
+            listOf(MemoryCard(iconId, uniqueIdCounter++), MemoryCard(iconId, uniqueIdCounter++))
         }
 
         val shuffleCards = newCards.shuffled()
@@ -42,37 +43,50 @@ class GameViewModel : ViewModel() {
         val clickedCard = _cards.value?.get(position) ?: return
         if (clickedCard.isFlipped || clickedCard.isMatched) return
 
-        val currentCards = _cards.value?.map { it.copy() } ?: return
+        val workingCards = _cards.value?.map { it.copy() } ?: return
 
-        currentCards[position].isFlipped = true
+        // 2. Modifique a cópia
+        workingCards[position].isFlipped = true
 
-        if(firstSelectedCardIndex == null){
+        if (firstSelectedCardIndex == null) {
+            // --- PRIMEIRO CLIQUE ---
             firstSelectedCardIndex = position
-            _cards.value = currentCards
+
+            // 3. Poste a lista modificada
+            _cards.value = workingCards // 1ª atualização (funciona)
+
         } else {
+            // --- SEGUNDO CLIQUE ---
             isBoardLocked = true
-            _cards.value = currentCards
 
-            val firstCard = currentCards[firstSelectedCardIndex!!]
-            val secondCard = currentCards[position]
+            // 4. Poste a lista mostrando a 2ª carta virada
+            _cards.value = workingCards // 2ª atualização (funciona)
 
-            if (firstCard.id == secondCard.id){
+            val firstCard = workingCards[firstSelectedCardIndex!!]
+            val secondCard = workingCards[position]
+
+            if (firstCard.id == secondCard.id) {
+                // --- DEU MATCH ---
                 firstCard.isMatched = true
                 secondCard.isMatched = true
                 firstSelectedCardIndex = null
                 isBoardLocked = false
-                _cards.value = currentCards
-            } else{
-                viewModelScope.launch {
-                    delay(1000) // Espera 1 segundo
 
-                    // Desvira as duas cartas
+                // 5. CORREÇÃO: Poste uma *NOVA CÓPIA* da lista
+                _cards.value = workingCards.map { it.copy() } // 3ª atualização (agora funciona)
+
+            } else {
+                // --- NÃO DEU MATCH ---
+                viewModelScope.launch {
+                    delay(1000)
+
                     firstCard.isFlipped = false
                     secondCard.isFlipped = false
+                    firstSelectedCardIndex = null
+                    isBoardLocked = false
 
-                    firstSelectedCardIndex = null // Reseta
-                    isBoardLocked = false // Destrava
-                    _cards.value = currentCards // Atualiza a UI
+                    // 6. CORREÇÃO: Poste uma *NOVA CÓPIA* da lista
+                    _cards.value = workingCards.map { it.copy() } // 3ª atualização (agora funciona)
                 }
             }
         }
