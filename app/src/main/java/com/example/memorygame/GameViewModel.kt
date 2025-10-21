@@ -13,80 +13,108 @@ class GameViewModel : ViewModel() {
     private val _cards = MutableLiveData<List<MemoryCard>>()
     val cards: LiveData<List<MemoryCard>> = _cards
 
-    private val iconList  = mutableListOf(R.drawable.ic_bus, R.drawable.ic_ice_flake, R.drawable.ic_sun,
-        R.drawable.ic_smile_cam)
+    private val iconList = listOf(
+        R.drawable.ic_bus,
+        R.drawable.ic_ice_flake,
+        R.drawable.ic_sun,
+        R.drawable.ic_smile_cam
+    )
 
     init {
         createNewGame()
     }
 
-    fun onRestartGameClicked(){
+    fun onRestartGameClicked() {
         createNewGame()
     }
 
     private fun createNewGame() {
         var uniqueIdCounter = 0
         val newCards = iconList.flatMap { iconId ->
-            listOf(MemoryCard(iconId, uniqueIdCounter++), MemoryCard(iconId, uniqueIdCounter++))
-        }
-
-        val shuffleCards = newCards.shuffled()
+            listOf(
+                MemoryCard(iconId, uniqueIdCounter++),
+                MemoryCard(iconId, uniqueIdCounter++)
+            )
+        }.shuffled()
 
         firstSelectedCardIndex = null
         isBoardLocked = false
-
-        _cards.value = shuffleCards
+        _cards.value = newCards
     }
 
-    fun onCardClicked(position: Int){
+    fun onCardClicked(position: Int) {
         if (isBoardLocked) return
-        val clickedCard = _cards.value?.get(position) ?: return
+
+        val currentCards = _cards.value ?: return
+        val clickedCard = currentCards.getOrNull(position) ?: return
+
         if (clickedCard.isFlipped || clickedCard.isMatched) return
 
-        val workingCards = _cards.value?.map { it.copy() } ?: return
-
-        // 2. Modifique a cópia
-        workingCards[position].isFlipped = true
-
         if (firstSelectedCardIndex == null) {
-            // --- PRIMEIRO CLIQUE ---
+            // ===== PRIMEIRO CLIQUE =====
             firstSelectedCardIndex = position
 
-            // 3. Poste a lista modificada
-            _cards.value = workingCards // 1ª atualização (funciona)
+            // Cria nova lista com a primeira carta virada
+            _cards.value = currentCards.mapIndexed { index, card ->
+                if (index == position) {
+                    card.copy(isFlipped = true)
+                } else {
+                    card
+                }
+            }
 
         } else {
-            // --- SEGUNDO CLIQUE ---
+            // ===== SEGUNDO CLIQUE =====
+            val firstPos = firstSelectedCardIndex!!
+
+            // Previne clicar na mesma carta
+            if (firstPos == position) return
+
             isBoardLocked = true
 
-            // 4. Poste a lista mostrando a 2ª carta virada
-            _cards.value = workingCards // 2ª atualização (funciona)
+            // Mostra a segunda carta virada
+            val cardsWithBothFlipped = currentCards.mapIndexed { index, card ->
+                if (index == position || index == firstPos) {
+                    card.copy(isFlipped = true)
+                } else {
+                    card
+                }
+            }
+            _cards.value = cardsWithBothFlipped
 
-            val firstCard = workingCards[firstSelectedCardIndex!!]
-            val secondCard = workingCards[position]
+            // Verifica se deu match
+            val firstCard = cardsWithBothFlipped[firstPos]
+            val secondCard = cardsWithBothFlipped[position]
 
             if (firstCard.id == secondCard.id) {
-                // --- DEU MATCH ---
-                firstCard.isMatched = true
-                secondCard.isMatched = true
+                // ===== MATCH! =====
+                _cards.value = cardsWithBothFlipped.mapIndexed { index, card ->
+                    if (index == firstPos || index == position) {
+                        card.copy(isMatched = true)
+                    } else {
+                        card
+                    }
+                }
+
                 firstSelectedCardIndex = null
                 isBoardLocked = false
 
-                // 5. CORREÇÃO: Poste uma *NOVA CÓPIA* da lista
-                _cards.value = workingCards.map { it.copy() } // 3ª atualização (agora funciona)
-
             } else {
-                // --- NÃO DEU MATCH ---
+                // ===== NÃO DEU MATCH =====
                 viewModelScope.launch {
                     delay(1000)
 
-                    firstCard.isFlipped = false
-                    secondCard.isFlipped = false
+                    // Desvira as duas cartas
+                    _cards.value = cardsWithBothFlipped.mapIndexed { index, card ->
+                        if (index == firstPos || index == position) {
+                            card.copy(isFlipped = false)
+                        } else {
+                            card
+                        }
+                    }
+
                     firstSelectedCardIndex = null
                     isBoardLocked = false
-
-                    // 6. CORREÇÃO: Poste uma *NOVA CÓPIA* da lista
-                    _cards.value = workingCards.map { it.copy() } // 3ª atualização (agora funciona)
                 }
             }
         }
