@@ -68,7 +68,7 @@ class GameViewModel : ViewModel() {
 
         isBoardLocked = true
         val cardsWithBothFlipped = _cards.value!!.mapIndexed { index, card ->
-            if (index == position || index == firstPos) card.copy(isFlipped = true) else card
+            if (index == position) card.copy(isFlipped = true) else card
         }
         _cards.value = cardsWithBothFlipped
 
