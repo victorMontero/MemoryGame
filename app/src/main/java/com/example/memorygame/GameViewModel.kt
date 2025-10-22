@@ -32,8 +32,8 @@ class GameViewModel : ViewModel() {
         var uniqueIdCounter = 0
         val newCards = iconList.flatMap { iconId ->
             listOf(
-                MemoryCard(iconId, uniqueIdCounter++),
-                MemoryCard(iconId, uniqueIdCounter++)
+                MemoryCard(id = iconId, uniqueId = uniqueIdCounter++),
+                MemoryCard(id = iconId, uniqueId = uniqueIdCounter++)
             )
         }.shuffled()
 
@@ -44,70 +44,58 @@ class GameViewModel : ViewModel() {
 
     fun onCardClicked(position: Int) {
         if (isBoardLocked) return
-
         val currentCards = _cards.value ?: return
         val clickedCard = currentCards.getOrNull(position) ?: return
-
         if (clickedCard.isFlipped || clickedCard.isMatched) return
 
         if (firstSelectedCardIndex == null) {
-            firstSelectedCardIndex = position
-
-            _cards.value = currentCards.mapIndexed { index, card ->
-                if (index == position) {
-                    card.copy(isFlipped = true)
-                } else {
-                    card
-                }
-            }
-
+            handleFirstClick(position)
         } else {
-            val firstPos = firstSelectedCardIndex!!
-
-            if (firstPos == position) return
-
-            isBoardLocked = true
-
-            val cardsWithBothFlipped = currentCards.mapIndexed { index, card ->
-                if (index == position || index == firstPos) {
-                    card.copy(isFlipped = true)
-                } else {
-                    card
-                }
-            }
-            _cards.value = cardsWithBothFlipped
-
-            val firstCard = cardsWithBothFlipped[firstPos]
-            val secondCard = cardsWithBothFlipped[position]
-
-            if (firstCard.id == secondCard.id) {
-                _cards.value = cardsWithBothFlipped.mapIndexed { index, card ->
-                    if (index == firstPos || index == position) {
-                        card.copy(isMatched = true)
-                    } else {
-                        card
-                    }
-                }
-
-                firstSelectedCardIndex = null
-                isBoardLocked = false
-
-            } else {
-                viewModelScope.launch {
-                    delay(1000)
-
-                    _cards.value = cardsWithBothFlipped.mapIndexed { index, card ->
-                        if (index == firstPos || index == position) {
-                            card.copy(isFlipped = false)
-                        } else {
-                            card
-                        }
-                    }
-
-                    firstSelectedCardIndex = null
-                    isBoardLocked = false
-                }
-            }
+            handleSecondClick(position)
         }
     }
-}
+
+    private fun handleFirstClick(position: Int) {
+        firstSelectedCardIndex = position
+        _cards.value = _cards.value!!.mapIndexed { index, card ->
+            if (index == position) card.copy(isFlipped = true) else card
+        }
+    }
+
+    private fun handleSecondClick(position: Int) {
+        val firstPos = firstSelectedCardIndex!!
+        if (firstPos == position) return
+
+        isBoardLocked = true
+        val cardsWithBothFlipped = _cards.value!!.mapIndexed { index, card ->
+            if (index == position || index == firstPos) card.copy(isFlipped = true) else card
+        }
+        _cards.value = cardsWithBothFlipped
+
+        checkForMatch(firstPos, position)
+    }
+
+    private fun checkForMatch(firstPos: Int, secondPos: Int) {
+        val cards = _cards.value!!
+        val firstCard = cards[firstPos]
+        val secondCard = cards[secondPos]
+
+        if (firstCard.id == secondCard.id) {
+            // Deu par
+            _cards.value = cards.mapIndexed { index, card ->
+                if (index == firstPos || index == secondPos) card.copy(isMatched = true) else card
+            }
+            firstSelectedCardIndex = null
+            isBoardLocked = false
+        } else {
+            // Não deu par
+            viewModelScope.launch {
+                delay(1000)
+                _cards.value = cards.mapIndexed { index, card ->
+                    if (index == firstPos || index == secondPos) card.copy(isFlipped = false) else card
+                }
+                firstSelectedCardIndex = null
+                isBoardLocked = false
+            }
+        }
+    }}

@@ -3,7 +3,7 @@ package com.example.memorygame
 data class MemoryCard(
     val id : Int,
     val uniqueId : Int,
-    var isFlipped: Boolean = false,
-    var isMatched: Boolean = false
+    val isFlipped: Boolean = false,
+    val isMatched: Boolean = false
 ) {
 }

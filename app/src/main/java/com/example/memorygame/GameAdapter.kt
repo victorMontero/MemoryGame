@@ -1,30 +1,27 @@
 package com.example.memorygame
 
 import android.view.LayoutInflater
-import android.view.View
 import android.view.ViewGroup
-import android.widget.ImageView
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import com.example.memorygame.databinding.ItemCardBinding
 
 
 class GameAdapter(
     private val onCardClicked: (Int) -> Unit
-): ListAdapter<MemoryCard, GameAdapter.CardViewHolder>(CardDiffCallback()){
+) : ListAdapter<MemoryCard, GameAdapter.CardViewHolder>(CardDiffCallback) {
 
-    inner class CardViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView){
-        private val imageView: ImageView = itemView.findViewById(R.id.card_image_view)
-
-        fun bind(card: MemoryCard){
-            if (card.isFlipped || card.isMatched){
-                imageView.setImageResource(card.id)
+    inner class CardViewHolder(private val binding: ItemCardBinding) :
+        RecyclerView.ViewHolder(binding.root) {
+        fun bind(card: MemoryCard) {
+            if (card.isFlipped || card.isMatched) {
+                binding.cardImageView.setImageResource(card.id)
             } else {
-                imageView.setImageResource(R.drawable.ic_launcher_background)
+                binding.cardImageView.setImageResource(R.drawable.ic_launcher_background)
             }
-            itemView.setOnClickListener {
+            binding.root.setOnClickListener {
                 val position = bindingAdapterPosition
-
                 if (position == RecyclerView.NO_POSITION) {
                     return@setOnClickListener
                 }
@@ -37,9 +34,10 @@ class GameAdapter(
         parent: ViewGroup,
         viewType: Int
     ): CardViewHolder {
-        val view = LayoutInflater.from(parent.context)
-            .inflate(R.layout.item_card, parent, false)
-        return CardViewHolder(view)
+        val binding = ItemCardBinding.inflate(
+            LayoutInflater.from(parent.context), parent, false
+        )
+        return CardViewHolder(binding)
     }
 
     override fun onBindViewHolder(
@@ -51,7 +49,7 @@ class GameAdapter(
 
 }
 
-class CardDiffCallback : DiffUtil.ItemCallback<MemoryCard>() {
+object CardDiffCallback : DiffUtil.ItemCallback<MemoryCard>() {
     override fun areItemsTheSame(
         oldItem: MemoryCard,
         newItem: MemoryCard
